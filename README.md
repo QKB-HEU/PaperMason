@@ -1,15 +1,100 @@
 # PaperMason
 
-**A local, catalog-first literature library for people and AI agents.**
+> **A Codex Skill and plugin for building, searching, and maintaining a local,
+> catalog-first paper library.**
 
-PaperMason turns a folder of papers into a small, explicit index that an AI
-agent can search before it reads source files. It works for any research
-field: computer science, medicine, social science, humanities, and more.
+PaperMason gives Codex a disciplined way to use a personal literature library:
+invoke `$papermason`, search `library.jsonl`, select a few candidate papers,
+then read the relevant Markdown, PDF, or figure as evidence. It is designed to
+prevent a common failure mode—an agent blindly scanning a large folder and
+confusing a filename, title, or catalog field for a supported claim.
+
+The core is a reusable Codex Skill packaged as a Codex plugin. Its optional
+Python CLI makes catalog creation, ingestion, and verification deterministic;
+the Skill itself works read-only with an existing `library.jsonl` and does not
+need Python, MinerU, a cloud service, an API key, or a GPU. PaperMason is
+field-neutral: use it for computer science, medicine, social science,
+humanities, or another discipline.
 
 It deliberately does **not** replace Zotero, download copyrighted papers, or
 require an LLM API. Use Zotero (or any reference manager) for citations and
 collections; use PaperMason when you want durable local Markdown, figures, and
 a machine-readable route to the few papers relevant to a task.
+
+## Use it in Codex
+
+After installation, give Codex a concrete retrieval task such as:
+
+> Use `$papermason` to find 4 papers in my local library about diffusion-based
+> trajectory prediction. Return candidate paths and versions first, then read
+> only the most relevant Introduction and method sections. Do not modify files.
+
+PaperMason turns this into an evidence-led sequence:
+
+```text
+research question -> catalog search -> small candidate set -> source inspection -> evidence-backed answer
+```
+
+The catalog routes the agent to sources; it never replaces the sources as
+evidence. For venue-specific prose after retrieval, pair it with a separate
+writing Skill—for example, `tits-academic-writing` for an IEEE TITS
+Introduction.
+
+## Install in Codex
+
+### Recommended: install the plugin from GitHub
+
+If your Codex environment supports GitHub marketplaces, run:
+
+```bash
+codex plugin marketplace add QKB-HEU/PaperMason --ref main
+codex plugin add papermason@papermason
+```
+
+Then start a new Codex task and invoke `$papermason`. The plugin includes the
+Skill only, so this installation has no Python, converter, or API-key
+requirement.
+
+You can also ask Codex directly:
+
+> Install the Codex plugin from https://github.com/QKB-HEU/PaperMason
+
+### Fallback: install only the Skill
+
+If your Codex environment cannot install a community plugin yet, ask it to:
+
+> Install the Codex Skill from GitHub repo `QKB-HEU/PaperMason`, path
+> `plugins/papermason/skills/papermason`.
+
+When working from a clone, Codex also discovers the repository-scoped Skill at
+`.agents/skills/papermason` automatically. The direct Skill route supports
+catalog-first retrieval; install the optional CLI only when you also need to
+create, bootstrap, verify, or ingest a library.
+
+## Optional: install the CLI
+
+The CLI needs Python 3.11+ and [uv](https://docs.astral.sh/uv/). If
+`uv --version` is unavailable, install uv with its
+[official instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then run:
+
+```bash
+uv tool install "git+https://github.com/QKB-HEU/PaperMason.git"
+papermason --help
+```
+
+For a source checkout:
+
+```bash
+git clone https://github.com/QKB-HEU/PaperMason.git
+cd PaperMason
+uv tool install .
+papermason --help
+```
+
+Use the CLI independently or let Codex call it through `$papermason` when it
+is available. Do not install MinerU unless you want PaperMason to convert new
+PDFs.
 
 ## What problem it solves
 
@@ -39,54 +124,6 @@ the chosen Markdown or PDF before it makes a factual claim.
   only the relevant source files.
 - Portable layout: new libraries have neutral directory names; the older
   `INBOX/PDF/Markdown` layout is detected for backward compatibility.
-
-## Install from zero
-
-### 1. Install Python and uv
-
-PaperMason supports Python 3.11+. The recommended installer is
-[uv](https://docs.astral.sh/uv/):
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Restart the terminal, then confirm the installation:
-
-```bash
-uv --version
-```
-
-On Windows, use the platform-specific installation command from uv's official
-documentation instead of the shell command above.
-
-### 2. Install PaperMason
-
-After the first PyPI release:
-
-```bash
-uv tool install papermason
-papermason --help
-```
-
-Until then, install directly from a GitHub release branch or clone:
-
-```bash
-uv tool install "git+https://github.com/<owner>/papermason.git"
-papermason --help
-```
-
-For contributors working from a clone:
-
-```bash
-git clone https://github.com/<owner>/papermason.git
-cd papermason
-uv tool install .
-papermason --help
-```
-
-`papermason --help` working is the only installation check required at this
-stage. Do not install MinerU unless you want PaperMason to convert new PDFs.
 
 ## Start a new library
 
@@ -172,7 +209,7 @@ papermason --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
   --label concise-paper-label
 ```
 
-## Retrieve papers for an AI task
+## Retrieve papers outside Codex
 
 Search first, then open a small number of records:
 
@@ -181,30 +218,10 @@ papermason --library ~/Research/Papers search "causal inference"
 papermason --library ~/Research/Papers verify
 ```
 
-In Codex, install the bundled PaperMason plugin or use the repository-scoped
-Skill at `.agents/skills/papermason`. It instructs the agent to search the
-catalog before reading papers, to treat catalog fields as routing metadata
-rather than proof, and to preserve library data by default.
-The Skill itself has no Python, converter, cloud, or API-key dependency; the
-optional `papermason` command merely makes its retrieval and maintenance steps
-deterministic.
-
-For a full reusable Codex installation, clone the repository and run:
-
-```bash
-codex plugin marketplace add /path/to/papermason
-codex plugin add papermason@papermason
-```
-
-The plugin itself has no converter or Python dependency. It can guide
-catalog-first retrieval by reading `library.jsonl`; install the CLI separately
-only when you want deterministic `init`, `bootstrap`, `search`, `verify`, or
-PDF-ingestion commands. For local development, Codex also discovers
-`.agents/skills/papermason` automatically when launched from this repository.
-
-Specialised writing extensions such as `tits-academic-writing` can use the
-same catalog-first evidence protocol, but they remain separate from
-PaperMason so its core stays discipline-neutral.
+The same routing principle applies to scripts and other AI agents: search first
+and inspect only the sources needed to support the task. PaperMason preserves
+library data by default; use the ingestion workflow only when you intend to
+change the library.
 
 ## Commands
 

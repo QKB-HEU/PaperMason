@@ -3,7 +3,7 @@ name: papermason
 description: Build, maintain, retrieve, and audit a local catalog-first literature library with PaperMason. Use when Codex needs to organize PDFs or converted Markdown, bootstrap an existing paper folder, diagnose broken Markdown image links, find a small evidence set for a research question, or help an AI use library.jsonl without scanning every paper. Works across research fields and can operate read-only without PaperMason, MinerU, cloud services, or API keys.
 ---
 
-# PaperMason
+# PaperMason — Codex Skill
 
 Treat a paper library as two layers: a compact catalog for routing and original
 Markdown/PDF/figure files for evidence. Use `library.jsonl` to decide what to

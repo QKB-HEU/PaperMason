@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "papermason"
 version = "0.1.0"
-description = "A local-first PDF-to-Markdown literature library for people and AI agents."
+description = "A Codex Skill and local-first CLI for catalog-first literature libraries."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "PaperMason contributors" }]
-keywords = ["research", "literature", "pdf", "markdown", "bibliography", "ai-agents"]
+keywords = ["research", "literature", "paper-library", "pdf", "markdown", "bibliography", "ai-agents", "codex", "codex-skill", "codex-plugin"]
 
 [project.scripts]
 papermason = "papermason.cli:main"
