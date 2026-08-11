@@ -12,14 +12,7 @@ confusing a filename, title, or catalog field for a supported claim.
 The core is a reusable Codex Skill packaged as a Codex plugin. Its optional
 Python CLI makes catalog creation, ingestion, and verification deterministic;
 the Skill itself works read-only with an existing `library.jsonl` and does not
-need Python, MinerU, a cloud service, an API key, or a GPU. PaperMason is
-field-neutral: use it for computer science, medicine, social science,
-humanities, or another discipline.
-
-It deliberately does **not** replace Zotero, download copyrighted papers, or
-require an LLM API. Use Zotero (or any reference manager) for citations and
-collections; use PaperMason when you want durable local Markdown, figures, and
-a machine-readable route to the few papers relevant to a task.
+need Python, MinerU, a cloud service, an API key, or a GPU.
 
 ## Use it in Codex
 
