@@ -1,5 +1,7 @@
 # PaperMason
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 > **A Codex Skill and plugin for building, searching, and maintaining a local,
 > catalog-first paper library.**
 
