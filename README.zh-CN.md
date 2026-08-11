@@ -11,8 +11,8 @@ PaperMeld 为 Codex 提供了一套使用个人文献库的明确流程：调用
 Markdown、PDF 或图片作为证据阅读。它避免了一种常见失误：智能体盲目扫描
 大量文件，把文件名、标题或目录字段误作有文献支持的结论。
 
-核心是一个可复用的 Codex Skill，并被打包为 Codex 插件。可选的 Python CLI
-使目录创建、入库和校验具有确定性；Skill 可直接读取已有的 `library.jsonl`，
+核心是一个可复用的 Codex Skill，并被打包为 Codex 插件。Python CLI 使目录创建、
+入库和校验具有确定性；Skill 可直接读取已有的 `library.jsonl`，
 进行目录优先的检索。
 
 ## 在 Codex 中使用
@@ -57,10 +57,9 @@ codex plugin add papermeld@papermeld
 > `plugins/papermeld/skills/papermeld`.
 
 从源码克隆目录中工作时，Codex 也会自动发现仓库级的
-`.agents/skills/papermeld`。直接安装 Skill 可以进行目录优先的文献检索；
-需要创建、引导现有文献、校验或导入文献库时，再安装可选的 CLI。
+`.agents/skills/papermeld`。安装 CLI 后，可创建、引导、校验和导入文献库。
 
-## 可选：安装 CLI
+## 安装 CLI
 
 CLI 需要 Python 3.11+ 与 [uv](https://docs.astral.sh/uv/)。如果
 `uv --version` 不可用，请先按 [官方安装说明](https://docs.astral.sh/uv/getting-started/installation/)

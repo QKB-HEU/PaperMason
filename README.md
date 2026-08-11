@@ -13,8 +13,8 @@ then read the relevant Markdown, PDF, or figure as evidence. It is designed to
 prevent a common failure mode—an agent blindly scanning a large folder and
 confusing a filename, title, or catalog field for a supported claim.
 
-The core is a reusable Codex Skill packaged as a Codex plugin. Its optional
-Python CLI makes catalog creation, ingestion, and verification deterministic;
+The core is a reusable Codex Skill packaged as a Codex plugin. Its Python CLI
+makes catalog creation, ingestion, and verification deterministic;
 the Skill reads an existing `library.jsonl` directly for catalog-first
 retrieval.
 
@@ -61,11 +61,10 @@ If your Codex environment cannot install a community plugin yet, ask it to:
 > `plugins/papermeld/skills/papermeld`.
 
 When working from a clone, Codex also discovers the repository-scoped Skill at
-`.agents/skills/papermeld` automatically. The direct Skill route supports
-catalog-first retrieval; install the optional CLI only when you also need to
-create, bootstrap, verify, or ingest a library.
+`.agents/skills/papermeld` automatically. Install the CLI to create,
+bootstrap, verify, or ingest a library.
 
-## Optional: install the CLI
+## Install the CLI
 
 The CLI needs Python 3.11+ and [uv](https://docs.astral.sh/uv/). If
 `uv --version` is unavailable, install uv with its
