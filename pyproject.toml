@@ -3,20 +3,20 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "papermason"
+name = "papermeld"
 version = "0.1.0"
 description = "A Codex Skill and local-first CLI for catalog-first literature libraries."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "PaperMason contributors" }]
+authors = [{ name = "PaperMeld contributors" }]
 keywords = ["research", "literature", "paper-library", "pdf", "markdown", "bibliography", "ai-agents", "codex", "codex-skill", "codex-plugin"]
 
 [project.scripts]
-papermason = "papermason.cli:main"
+papermeld = "papermeld.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/papermason"]
+packages = ["src/papermeld"]
 
 [tool.uv]
 package = true

@@ -1,14 +1,14 @@
-# PaperMason
+# PaperMeld
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-![PaperMason workflow: paper library, catalog, and selected evidence](docs/media/papermason-workflow.png)
+![PaperMeld workflow: paper library, catalog, and selected evidence](docs/media/papermeld-workflow.png)
 
 > **A Codex Skill and plugin for building, searching, and maintaining a local,
 > catalog-first paper library.**
 
-PaperMason gives Codex a disciplined way to use a personal literature library:
-invoke `$papermason`, search `library.jsonl`, select a few candidate papers,
+PaperMeld gives Codex a disciplined way to use a personal literature library:
+invoke `$papermeld`, search `library.jsonl`, select a few candidate papers,
 then read the relevant Markdown, PDF, or figure as evidence. It is designed to
 prevent a common failure mode—an agent blindly scanning a large folder and
 confusing a filename, title, or catalog field for a supported claim.
@@ -22,11 +22,11 @@ need Python, MinerU, a cloud service, an API key, or a GPU.
 
 After installation, give Codex a concrete retrieval task such as:
 
-> Use `$papermason` to find 4 papers in my local library about diffusion-based
+> Use `$papermeld` to find 4 papers in my local library about diffusion-based
 > trajectory prediction. Return candidate paths and versions first, then read
 > only the most relevant Introduction and method sections. Do not modify files.
 
-PaperMason turns this into an evidence-led sequence:
+PaperMeld turns this into an evidence-led sequence:
 
 ```text
 research question -> catalog search -> small candidate set -> source inspection -> evidence-backed answer
@@ -42,27 +42,27 @@ evidence.
 If your Codex environment supports GitHub marketplaces, run:
 
 ```bash
-codex plugin marketplace add QKB-HEU/PaperMason --ref main
-codex plugin add papermason@papermason
+codex plugin marketplace add QKB-HEU/PaperMeld --ref main
+codex plugin add papermeld@papermeld
 ```
 
-Then start a new Codex task and invoke `$papermason`. The plugin includes the
+Then start a new Codex task and invoke `$papermeld`. The plugin includes the
 Skill only, so this installation has no Python, converter, or API-key
 requirement.
 
 You can also ask Codex directly:
 
-> Install the Codex plugin from https://github.com/QKB-HEU/PaperMason
+> Install the Codex plugin from https://github.com/QKB-HEU/PaperMeld
 
 ### Fallback: install only the Skill
 
 If your Codex environment cannot install a community plugin yet, ask it to:
 
-> Install the Codex Skill from GitHub repo `QKB-HEU/PaperMason`, path
-> `plugins/papermason/skills/papermason`.
+> Install the Codex Skill from GitHub repo `QKB-HEU/PaperMeld`, path
+> `plugins/papermeld/skills/papermeld`.
 
 When working from a clone, Codex also discovers the repository-scoped Skill at
-`.agents/skills/papermason` automatically. The direct Skill route supports
+`.agents/skills/papermeld` automatically. The direct Skill route supports
 catalog-first retrieval; install the optional CLI only when you also need to
 create, bootstrap, verify, or ingest a library.
 
@@ -74,27 +74,27 @@ The CLI needs Python 3.11+ and [uv](https://docs.astral.sh/uv/). If
 then run:
 
 ```bash
-uv tool install "git+https://github.com/QKB-HEU/PaperMason.git"
-papermason --help
+uv tool install "git+https://github.com/QKB-HEU/PaperMeld.git"
+papermeld --help
 ```
 
 For a source checkout:
 
 ```bash
-git clone https://github.com/QKB-HEU/PaperMason.git
-cd PaperMason
+git clone https://github.com/QKB-HEU/PaperMeld.git
+cd PaperMeld
 uv tool install .
-papermason --help
+papermeld --help
 ```
 
-Use the CLI independently or let Codex call it through `$papermason` when it
-is available. MinerU is used when PaperMason converts new PDFs.
+Use the CLI independently or let Codex call it through `$papermeld` when it
+is available. MinerU is used when PaperMeld converts new PDFs.
 
 ## What problem it solves
 
 A directory of PDFs and converted Markdown is readable to a person but opaque
 to an AI: it does not know which files are relevant, whether an item is a
-preprint, or where a figure belongs. PaperMason keeps a `library.jsonl` catalog
+preprint, or where a figure belongs. PaperMeld keeps a `library.jsonl` catalog
 with one record per paper version. The correct retrieval pattern is:
 
 ```text
@@ -109,7 +109,7 @@ the chosen Markdown or PDF before it makes a factual claim.
 - Local-first: PDF text and conversion artifacts stay on your computer.
 - Converter-optional: searching, verifying, and cataloging existing Markdown
   require only Python's standard library. MinerU is an optional PDF converter,
-  not a PaperMason dependency.
+  not a PaperMeld dependency.
 - Safe ingestion: checks exact PDF hashes, DOI, and arXiv identifiers before a
   conversion; external PDFs are copied by default rather than moved.
 - Existing-library bootstrap: indexes your current Markdown and optionally
@@ -121,10 +121,10 @@ the chosen Markdown or PDF before it makes a factual claim.
 
 ## Start a new library
 
-Choose a location outside the PaperMason source checkout:
+Choose a location outside the PaperMeld source checkout:
 
 ```bash
-papermason --library ~/Research/Papers init
+papermeld --library ~/Research/Papers init
 ```
 
 This creates an empty, portable library:
@@ -132,7 +132,7 @@ This creates an empty, portable library:
 ```text
 Papers/
 ├── inbox/          # optional landing place for PDFs
-├── papers/         # PaperMason-managed PDF copies
+├── papers/         # PaperMeld-managed PDF copies
 ├── markdown/       # one readable Markdown file per paper
 ├── assets/         # converter artifacts and local figures
 └── library.jsonl   # one JSON record per paper version
@@ -147,7 +147,7 @@ No source PDF, Markdown, or image is uploaded anywhere.
 First preview the catalog that would be built:
 
 ```bash
-papermason --library ~/Research/Papers bootstrap \
+papermeld --library ~/Research/Papers bootstrap \
   --markdown-dir ~/OldLibrary/markdown \
   --pdf-dir ~/OldLibrary/pdfs \
   --dry-run
@@ -157,23 +157,23 @@ If the record count and PDF links look right, run the same command without
 `--dry-run`:
 
 ```bash
-papermason --library ~/Research/Papers bootstrap \
+papermeld --library ~/Research/Papers bootstrap \
   --markdown-dir ~/OldLibrary/markdown \
   --pdf-dir ~/OldLibrary/pdfs
 ```
 
 Repeat `--markdown-dir` or `--pdf-dir` to join multiple collections. The
-source folders stay where they are; PaperMason writes only `library.jsonl` and
+source folders stay where they are; PaperMeld writes only `library.jsonl` and
 its empty library layout. Files it cannot match are marked for review instead
 of guessed.
 
-### I have PDFs and want PaperMason to convert them
+### I have PDFs and want PaperMeld to convert them
 
-Install and test a local PDF-to-Markdown converter first. PaperMason supports
+Install and test a local PDF-to-Markdown converter first. PaperMeld supports
 MinerU out of the box, but keeps it optional:
 
 ```bash
-papermason --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
+papermeld --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
   --mineru /absolute/path/to/mineru \
   --label concise-paper-label \
   --dry-run
@@ -183,13 +183,13 @@ Review the proposed title, year, venue, filename, and duplicate status. Remove
 `--dry-run` only when they are acceptable:
 
 ```bash
-papermason --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
+papermeld --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
   --mineru /absolute/path/to/mineru \
   --label concise-paper-label
 ```
 
 An external PDF is copied into `papers/`; the original remains in Downloads.
-Put a PDF in `inbox/` when you want PaperMason to move it into the managed
+Put a PDF in `inbox/` when you want PaperMeld to move it into the managed
 library. Use `--move-source` only when you explicitly want an external source
 file moved.
 
@@ -198,7 +198,7 @@ For another converter, pass a command template with literal `{pdf}` and
 output directory and keep local images reachable with relative paths:
 
 ```bash
-papermason --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
+papermeld --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
   --converter 'my-converter --input {pdf} --output {output}' \
   --label concise-paper-label
 ```
@@ -208,12 +208,12 @@ papermason --library ~/Research/Papers ingest ~/Downloads/paper.pdf \
 Search first, then open a small number of records:
 
 ```bash
-papermason --library ~/Research/Papers search "causal inference"
-papermason --library ~/Research/Papers verify
+papermeld --library ~/Research/Papers search "causal inference"
+papermeld --library ~/Research/Papers verify
 ```
 
 The same routing principle applies to scripts and other AI agents: search first
-and inspect only the sources needed to support the task. PaperMason preserves
+and inspect only the sources needed to support the task. PaperMeld preserves
 library data by default; use the ingestion workflow only when you intend to
 change the library.
 
@@ -227,7 +227,7 @@ change the library.
 | `verify` | Check catalog paths and local image links | No |
 | `ingest PDF` | Convert one PDF, organize assets, and append a record | Yes |
 
-Run `papermason <command> --help` for every option. `ingest --dry-run` is the
+Run `papermeld <command> --help` for every option. `ingest --dry-run` is the
 recommended first run for any new converter or PDF collection.
 
 ## Record format and privacy
@@ -248,7 +248,7 @@ recommended first run for any new converter or PDF collection.
 }
 ```
 
-When a DOI is available, PaperMason asks Crossref only for bibliographic
+When a DOI is available, PaperMeld asks Crossref only for bibliographic
 metadata. It sends no PDF contents, extracted Markdown, catalog, or API key.
 Missing or uncertain metadata is recorded for review rather than silently
 invented.
@@ -259,7 +259,7 @@ library layout for that reason.
 
 ## Compatibility and safety
 
-PaperMason detects the earlier layout:
+PaperMeld detects the earlier layout:
 
 ```text
 INBOX/  PDF/  Markdown/ALL_MARKDOWN/  Markdown/MINERU_OUTPUT/
@@ -284,7 +284,7 @@ MIT licensed; see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-PaperMason is grateful to the projects and communities that make this workflow
+PaperMeld is grateful to the projects and communities that make this workflow
 possible:
 
 - [OpenAI Codex](https://developers.openai.com/codex) for assistance with
@@ -297,7 +297,7 @@ possible:
 - [uv](https://docs.astral.sh/uv/) for reproducible Python packaging and
   development workflows.
 
-These projects did not review or endorse PaperMason. PaperMason remains an
+These projects did not review or endorse PaperMeld. PaperMeld remains an
 independent, local-first tool; users are responsible for complying with the
 licenses and access conditions of their source materials and chosen converters.
 

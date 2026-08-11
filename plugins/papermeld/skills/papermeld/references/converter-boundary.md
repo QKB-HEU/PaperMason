@@ -1,6 +1,6 @@
 # Converter boundary
 
-PaperMason owns cataloging and safe local organization. A converter owns PDF
+PaperMeld owns cataloging and safe local organization. A converter owns PDF
 understanding. Keep that boundary explicit so the core library remains useful
 without a GPU, network service, or a particular parser.
 
@@ -15,7 +15,7 @@ The converter command receives two placeholders:
 
 It must finish successfully and create exactly one non-hidden Markdown file
 somewhere under `{output}`. Images referenced as `images/foo.png` or
-`./images/foo.png` must exist relative to that Markdown file. PaperMason moves
+`./images/foo.png` must exist relative to that Markdown file. PaperMeld moves
 the validated output into `assets/<paper-id>/` and rewrites those local links
 to remain valid from `markdown/<paper-id>.md`.
 
@@ -34,4 +34,4 @@ to remain valid from `markdown/<paper-id>.md`.
 MinerU is supported as a convenience adapter when `mineru` is on `PATH` or
 provided with `--mineru`. Its installation, model downloads, GPU selection,
 and resource requirements belong to MinerU's own documentation. They are not
-PaperMason installation requirements.
+PaperMeld installation requirements.

@@ -1,4 +1,4 @@
-"""PaperMason command-line interface."""
+"""PaperMeld command-line interface."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ KNOWN_VENUES = tuple(sorted((
 ), key=len, reverse=True))
 
 
-class PaperMasonError(RuntimeError):
+class PaperMeldError(RuntimeError):
     pass
 
 
@@ -68,7 +68,7 @@ class Library:
             try:
                 result.append(json.loads(line))
             except json.JSONDecodeError as error:
-                raise PaperMasonError(f"Invalid catalog line {number}: {error}") from error
+                raise PaperMeldError(f"Invalid catalog line {number}: {error}") from error
         return result
 
     def append(self, record: dict) -> None:
@@ -116,7 +116,7 @@ def pdf_text(pdf: Path) -> str:
 
 def crossref(doi: str) -> dict | None:
     url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="")
-    request = urllib.request.Request(url, headers={"User-Agent": "PaperMason/0.1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "PaperMeld/0.1"})
     try:
         with urllib.request.urlopen(request, timeout=12) as response:
             message = json.loads(response.read().decode("utf-8"))["message"]
@@ -202,18 +202,18 @@ def metadata(pdf: Path, args: argparse.Namespace) -> dict:
 def check_duplicates(records: list[dict], digest: str, meta: dict) -> None:
     for record in records:
         if record.get("sha256") == digest:
-            raise PaperMasonError(f"Exact PDF duplicate of {record['paper_id']}; conversion was not started.")
+            raise PaperMeldError(f"Exact PDF duplicate of {record['paper_id']}; conversion was not started.")
         if meta.get("doi") and record.get("doi") == meta["doi"]:
-            raise PaperMasonError(f"DOI already belongs to {record['paper_id']}; conversion was not started.")
+            raise PaperMeldError(f"DOI already belongs to {record['paper_id']}; conversion was not started.")
         if meta.get("arxiv_id") and record.get("arxiv_id") == meta["arxiv_id"]:
-            raise PaperMasonError(f"arXiv ID already belongs to {record['paper_id']}; review versions before ingesting.")
+            raise PaperMeldError(f"arXiv ID already belongs to {record['paper_id']}; review versions before ingesting.")
 
 
 def find_conversion_output(staging: Path) -> tuple[Path, Path]:
     """Locate one Markdown result from MinerU or another local converter."""
     candidates = sorted(path for path in staging.rglob("*.md") if not path.name.startswith("."))
     if len(candidates) != 1:
-        raise PaperMasonError(f"Expected exactly one converted Markdown file, found {len(candidates)}.")
+        raise PaperMeldError(f"Expected exactly one converted Markdown file, found {len(candidates)}.")
     markdown = candidates[0]
     # Preserve MinerU's outer source folder; generic converters use the
     # Markdown directory itself as their artifact bundle.
@@ -284,7 +284,7 @@ def bundle_from_markdown(library: Library, markdown: Path, text: str) -> tuple[P
             relative = images_dir.relative_to(library.assets)
         except ValueError:
             # An existing library may keep figures alongside Markdown or in a
-            # converter-specific folder outside PaperMason.  Index it without
+            # converter-specific folder outside PaperMeld.  Index it without
             # moving it; the record can safely carry an absolute reference.
             return images_dir.parent, images_dir
         return library.assets / relative.parts[0], images_dir
@@ -376,7 +376,7 @@ def markdown_sources(library: Library, supplied: list[Path] | None) -> list[tupl
     result = []
     for root in unique_paths(roots):
         if not root.is_dir():
-            raise PaperMasonError(f"Markdown directory does not exist: {root}")
+            raise PaperMeldError(f"Markdown directory does not exist: {root}")
         try:
             collection = str(root.relative_to(library.root))
         except ValueError:
@@ -391,7 +391,7 @@ def bootstrap(args: argparse.Namespace) -> int:
     library = Library(args.library)
     sources = markdown_sources(library, args.markdown_dir)
     if not sources:
-        raise PaperMasonError("No Markdown files found. Pass one or more --markdown-dir paths if this is an existing collection.")
+        raise PaperMeldError("No Markdown files found. Pass one or more --markdown-dir paths if this is an existing collection.")
     default_pdf_roots = [library.pdfs]
     legacy_tits_pdfs = library.root / "TITS"
     if library.legacy_layout and legacy_tits_pdfs.is_dir():
@@ -400,7 +400,7 @@ def bootstrap(args: argparse.Namespace) -> int:
     records = [bootstrap_record(library, path, collection, pdf_roots) for path, collection in sources]
     ids = [record["paper_id"] for record in records]
     if len(ids) != len(set(ids)):
-        raise PaperMasonError("Duplicate paper IDs across Markdown collections; resolve before bootstrapping.")
+        raise PaperMeldError("Duplicate paper IDs across Markdown collections; resolve before bootstrapping.")
     linked = sum(record["source_pdf"] is not None for record in records)
     local_images = sum(record["image_root"] is not None for record in records)
     print(f"Bootstrap plan: {len(records)} records; PDFs linked: {linked}; local image roots: {local_images}; review required: {len(records) - linked}")
@@ -408,7 +408,7 @@ def bootstrap(args: argparse.Namespace) -> int:
         print("Dry run complete; catalog was not written.")
         return 0
     if library.catalog.exists() and library.catalog.read_text(encoding="utf-8").strip() and not args.overwrite:
-        raise PaperMasonError("library.jsonl is not empty; refuse to replace it. Use --overwrite only after backing it up.")
+        raise PaperMeldError("library.jsonl is not empty; refuse to replace it. Use --overwrite only after backing it up.")
     library.initialize()
     temporary = library.catalog.with_name(library.catalog.name + ".bootstrap-tmp")
     with temporary.open("w", encoding="utf-8") as stream:
@@ -428,7 +428,7 @@ def migrate_images(text: str, source_md: Path, bundle: Path, final_bundle: Path,
             return None
         source = (source_md.parent / (raw[2:] if raw.startswith("./") else raw)).resolve()
         if not source.is_file():
-            raise PaperMasonError(f"Converted Markdown refers to a missing image: {raw}")
+            raise PaperMeldError(f"Converted Markdown refers to a missing image: {raw}")
         final_image = final_bundle / source.relative_to(bundle.resolve())
         return "<" + os.path.relpath(final_image, final_md.parent).replace(os.sep, "/") + ">"
 
@@ -448,15 +448,15 @@ def call_converter(source: Path, staging: Path, args: argparse.Namespace) -> Non
         try:
             command = [part.format(pdf=str(source), output=str(staging)) for part in shlex.split(args.converter)]
         except ValueError as error:
-            raise PaperMasonError("Invalid --converter template. Use {pdf} and {output} placeholders.") from error
+            raise PaperMeldError("Invalid --converter template. Use {pdf} and {output} placeholders.") from error
         if not command:
-            raise PaperMasonError("--converter must not be empty.")
+            raise PaperMeldError("--converter must not be empty.")
         print("Running converter:", " ".join(command))
         subprocess.run(command, check=True)
         return
     mineru = args.mineru or shutil.which("mineru")
     if not mineru:
-        raise PaperMasonError("No converter is configured. Install MinerU, provide --mineru, or pass --converter 'command {pdf} {output}'.")
+        raise PaperMeldError("No converter is configured. Install MinerU, provide --mineru, or pass --converter 'command {pdf} {output}'.")
     command = [mineru, "-p", str(source), "-o", str(staging), "--backend", args.backend, "--method", args.method]
     if args.backend == "hybrid-engine":
         command.extend(["--effort", args.effort])
@@ -472,7 +472,7 @@ def ingest(args: argparse.Namespace) -> int:
     library.initialize()
     source = Path(args.pdf).expanduser().resolve()
     if not source.is_file() or source.suffix.lower() != ".pdf":
-        raise PaperMasonError("ingest accepts exactly one existing PDF.")
+        raise PaperMeldError("ingest accepts exactly one existing PDF.")
     try:
         source.relative_to(library.inbox.resolve())
         source_is_inbox = True
@@ -487,12 +487,12 @@ def ingest(args: argparse.Namespace) -> int:
     final_md = library.markdown / f"{meta['paper_id']}.md"
     final_bundle = library.assets / meta["paper_id"]
     if any(path.exists() for path in (final_pdf, final_md, final_bundle)):
-        raise PaperMasonError(f"Destination already exists for {meta['paper_id']}; use --paper-id to resolve it.")
+        raise PaperMeldError(f"Destination already exists for {meta['paper_id']}; use --paper-id to resolve it.")
     print(json.dumps({**meta, "source": str(source), "markdown": str(final_md)}, ensure_ascii=False, indent=2))
     if args.dry_run:
         print("Dry run complete; conversion was not started and no files changed.")
         return 0
-    with tempfile.TemporaryDirectory(prefix="papermason-", dir=library.inbox) as temporary:
+    with tempfile.TemporaryDirectory(prefix="papermeld-", dir=library.inbox) as temporary:
         staging = Path(temporary)
         call_converter(source, staging, args)
         bundle, generated = find_conversion_output(staging)
@@ -560,7 +560,7 @@ def verify(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="papermason", description="Build a local, catalog-first literature library for people and AI agents.")
+    parser = argparse.ArgumentParser(prog="papermeld", description="Build a local, catalog-first literature library for people and AI agents.")
     parser.add_argument("--library", type=Path, default=Path.cwd(), help="Library root; default is current directory.")
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="Create a portable library layout and library.jsonl.")
@@ -601,11 +601,11 @@ def main() -> None:
     try:
         args = build_parser().parse_args()
         raise SystemExit(args.handler(args))
-    except PaperMasonError as error:
-        print(f"papermason: {error}", file=sys.stderr)
+    except PaperMeldError as error:
+        print(f"papermeld: {error}", file=sys.stderr)
         raise SystemExit(2)
     except subprocess.CalledProcessError as error:
-        print(f"papermason: converter failed with exit code {error.returncode}; no catalog record was written.", file=sys.stderr)
+        print(f"papermeld: converter failed with exit code {error.returncode}; no catalog record was written.", file=sys.stderr)
         raise SystemExit(error.returncode)
 
 

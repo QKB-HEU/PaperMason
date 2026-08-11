@@ -1,6 +1,6 @@
 # Code of Conduct
 
-PaperMason is a collaborative project for researchers and software builders.
+PaperMeld is a collaborative project for researchers and software builders.
 Participate with respect, assume good intent, and keep criticism focused on
 ideas, evidence, and code rather than people.
 

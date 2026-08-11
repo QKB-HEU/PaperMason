@@ -10,11 +10,11 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[1]
 
 
-class PaperMasonEndToEndTest(unittest.TestCase):
+class PaperMeldEndToEndTest(unittest.TestCase):
     def test_init_uses_portable_layout_for_a_new_library(self):
         with tempfile.TemporaryDirectory() as temporary:
             library = Path(temporary) / "papers"
-            command = [shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "init"]
+            command = [shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "init"]
             result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(result.returncode, 0, result.stderr)
             for name in ("inbox", "papers", "markdown", "assets", "library.jsonl"):
@@ -32,7 +32,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             content = "# Care ethics in practice\n\n![](figures/diagram.png)\n"
             markdown.write_text(content, encoding="utf-8")
             command = [
-                shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library),
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
                 "bootstrap", "--markdown-dir", str(external),
             ]
             result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
@@ -42,9 +42,9 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             self.assertEqual(record["paper_id"], "Brown 2021 - Care Ethics")
             self.assertEqual(record["markdown"], str(markdown.resolve()))
             self.assertEqual(record["image_mode"], "local")
-            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(verify.returncode, 0, verify.stderr)
-            preview = subprocess.run([shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "bootstrap", "--markdown-dir", str(external), "--dry-run"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            preview = subprocess.run([shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "bootstrap", "--markdown-dir", str(external), "--dry-run"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(preview.returncode, 0, preview.stderr)
 
     def test_generic_converter_copies_an_external_pdf_by_default(self):
@@ -65,7 +65,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             )
             converter.chmod(0o755)
             command = [
-                shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "ingest", str(source),
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "ingest", str(source),
                 "--converter", f"{shutil.which('python3') or 'python'} {converter} {{pdf}} {{output}}",
                 "--year", "2024", "--venue", "Journal", "--title", "A general paper", "--label", "GeneralPaper",
             ]
@@ -75,7 +75,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             self.assertTrue((library / "papers" / "2024-Journal-GeneralPaper.pdf").is_file())
             output = library / "markdown" / "2024-Journal-GeneralPaper.md"
             self.assertIn("../assets/2024-Journal-GeneralPaper/images/figure.png", output.read_text())
-            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
     def test_ingest_with_fake_mineru_rewrites_image_path_and_catalogs(self):
@@ -100,7 +100,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             )
             fake.chmod(0o755)
             command = [
-                shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library),
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
                 "ingest", str(source), "--mineru", str(fake), "--year", "2025", "--venue", "CVPR", "--model", "ExampleNet",
             ]
             result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
@@ -124,7 +124,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             source = markdown / "2025-CVPR-ExampleNet.md"
             content = "# ExampleNet\n\nAbstract: Trajectory prediction for autonomous driving.\n\nKeywords: trajectory prediction; autonomous driving\n\nIntroduction\n\n![](<../MINERU_OUTPUT/source-paper/hybrid_auto/images/figure.png>)\n"
             source.write_text(content, encoding="utf-8")
-            command = [shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "bootstrap"]
+            command = [shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "bootstrap"]
             result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(result.returncode, 0, result.stderr)
             record = json.loads((library / "library.jsonl").read_text())
@@ -132,7 +132,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             self.assertEqual(record["image_mode"], "local")
             self.assertIn("trajectory-prediction", record["tags"])
             self.assertEqual(source.read_text(encoding="utf-8"), content)
-            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            verify = subprocess.run([shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "verify"], capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
     def test_bootstrap_preserves_hyphenated_venue(self):
@@ -141,7 +141,7 @@ class PaperMasonEndToEndTest(unittest.TestCase):
             markdown = library / "Markdown" / "ALL_MARKDOWN"
             markdown.mkdir(parents=True)
             (markdown / "2025-RA-L-ExampleNet.md").write_text("# ExampleNet", encoding="utf-8")
-            command = [shutil.which("python3") or "python", "-m", "papermason.cli", "--library", str(library), "bootstrap"]
+            command = [shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "bootstrap"]
             result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
             self.assertEqual(result.returncode, 0, result.stderr)
             record = json.loads((library / "library.jsonl").read_text())

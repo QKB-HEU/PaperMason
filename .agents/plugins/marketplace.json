@@ -1,14 +1,14 @@
 {
-  "name": "papermason",
+  "name": "papermeld",
   "interface": {
-    "displayName": "PaperMason"
+    "displayName": "PaperMeld"
   },
   "plugins": [
     {
-      "name": "papermason",
+      "name": "papermeld",
       "source": {
         "source": "local",
-        "path": "./plugins/papermason"
+        "path": "./plugins/papermeld"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -1,9 +1,9 @@
 ---
-name: papermason
-description: Build, maintain, retrieve, and audit a local catalog-first literature library with PaperMason. Use when Codex needs to organize PDFs or converted Markdown, bootstrap an existing paper folder, diagnose broken Markdown image links, find a small evidence set for a research question, or help an AI use library.jsonl without scanning every paper. Works across research fields and can operate read-only without PaperMason, MinerU, cloud services, or API keys.
+name: papermeld
+description: Build, maintain, retrieve, and audit a local catalog-first literature library with PaperMeld. Use when Codex needs to organize PDFs or converted Markdown, bootstrap an existing paper folder, diagnose broken Markdown image links, find a small evidence set for a research question, or help an AI use library.jsonl without scanning every paper. Works across research fields and can operate read-only without PaperMeld, MinerU, cloud services, or API keys.
 ---
 
-# PaperMason — Codex Skill
+# PaperMeld — Codex Skill
 
 Treat a paper library as two layers: a compact catalog for routing and original
 Markdown/PDF/figure files for evidence. Use `library.jsonl` to decide what to
@@ -12,7 +12,7 @@ open; never use a title, tag, abstract excerpt, or filename as factual proof.
 ## Start with discovery
 
 1. Ask for or locate the library root. Look for `library.jsonl` first.
-2. If the `papermason` command is available, run `papermason --library <root> search <query>` or `verify` as appropriate. If it is not installed, inspect `library.jsonl` directly; do not block a read-only research task on an installation.
+2. If the `papermeld` command is available, run `papermeld --library <root> search <query>` or `verify` as appropriate. If it is not installed, inspect `library.jsonl` directly; do not block a read-only research task on an installation.
 3. Read [references/catalog-contract.md](references/catalog-contract.md) before editing a catalog or deciding whether a path is a valid local record.
 4. Report the observed layout, catalog record count, unresolved records, and any assumptions before proposing a structural change.
 
@@ -24,14 +24,14 @@ open; never use a title, tag, abstract excerpt, or filename as factual proof.
 2. Search one focused query at a time. Rank records by title, tags, abstract excerpt, status, and source paths.
 3. Select the smallest viable evidence set—normally 3–8 papers, not the entire library.
 4. Open the relevant section, page, or figure in each selected source. Record a source card with its path, version, precise claim, and location.
-5. State evidence gaps explicitly. Hand the source cards to a domain writing skill when one applies; for example, use `tits-academic-writing` for a TITS Introduction rather than pretending PaperMason supplies venue-specific rhetoric.
+5. State evidence gaps explicitly. Hand the source cards to a domain writing skill when one applies; PaperMeld provides evidence routing, not venue-specific rhetoric.
 
 ### Bootstrap an existing collection
 
 Use bootstrap when Markdown and PDFs already exist. First run a dry-run. Pass every Markdown root and PDF root explicitly if they lie outside the library root. Bootstrap may create the library layout and catalog, but must not rename, move, delete, or rewrite the source collection.
 
 ```bash
-papermason --library <library-root> bootstrap \
+papermeld --library <library-root> bootstrap \
   --markdown-dir <markdown-root> \
   --pdf-dir <pdf-root> \
   --dry-run
@@ -44,7 +44,7 @@ Check duplicate `paper_id` values and links before rerunning without `--dry-run`
 Use `ingest` only after a converter has been separately installed and tested. The core catalog workflow does not require MinerU. Preview metadata and duplicate detection first:
 
 ```bash
-papermason --library <library-root> ingest <input.pdf> --label <short-label> --dry-run
+papermeld --library <library-root> ingest <input.pdf> --label <short-label> --dry-run
 ```
 
 Remove `--dry-run` only after the user has reviewed title, year, venue, identifier, and destination. An arbitrary external PDF is copied by default. A PDF in `inbox/` is managed by the library. Moving an external source requires the explicit `--move-source` flag.

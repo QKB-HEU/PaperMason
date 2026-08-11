@@ -1,18 +1,18 @@
 {
-  "name": "papermason",
-  "version": "0.1.0+codex.20260811022147",
+  "name": "papermeld",
+  "version": "0.1.0+codex.20260811025939",
   "description": "A Codex Skill and plugin for building, searching, and auditing local catalog-first paper libraries.",
   "author": {
-    "name": "PaperMason contributors"
+    "name": "PaperMeld contributors"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "PaperMason for Codex",
+    "displayName": "PaperMeld for Codex",
     "shortDescription": "Codex Skill for catalog-first local paper libraries.",
     "longDescription": "An installable Codex Skill to organize, retrieve, and audit a local literature library without tying it to a research field or PDF converter.",
-    "developerName": "PaperMason contributors",
+    "developerName": "PaperMeld contributors",
     "category": "Productivity",
     "capabilities": [],
-    "defaultPrompt": "Use $papermason to find a small evidence set in my local paper library."
+    "defaultPrompt": "Use $papermeld to find a small evidence set in my local paper library."
   }
 }
