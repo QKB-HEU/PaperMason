@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "papermason"
+version = "0.1.0"
+description = "A local-first PDF-to-Markdown literature library for people and AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "PaperMason contributors" }]
+keywords = ["research", "literature", "pdf", "markdown", "bibliography", "ai-agents"]
+
+[project.scripts]
+papermason = "papermason.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/papermason"]
+
+[tool.uv]
+package = true

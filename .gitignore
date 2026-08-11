@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.venv/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+dist/
+build/
+*.egg-info/
+.DS_Store
+
+# A user library is data, not project source.
+INBOX/
+PDF/
+Markdown/
+library.jsonl
+
+# Default layout created by PaperMason v0.2+.
+inbox/
+papers/
+markdown/
+assets/

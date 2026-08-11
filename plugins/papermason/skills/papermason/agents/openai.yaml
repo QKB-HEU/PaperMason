@@ -1,0 +1,4 @@
+interface:
+  display_name: "PaperMason Library"
+  short_description: "Catalog-first local literature library workflow"
+  default_prompt: "Use $papermason to catalog, retrieve, and verify a local literature library."
