@@ -271,6 +271,25 @@ uv build
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules. The project is
 MIT licensed; see [LICENSE](LICENSE).
 
+## Acknowledgments
+
+PaperMason is grateful to the projects and communities that make this workflow
+possible:
+
+- [OpenAI Codex](https://developers.openai.com/codex) for assistance with
+  implementation, testing, documentation, and the reusable Skill/plugin
+  workflow.
+- [MinerU](https://github.com/opendatalab/MinerU) for the optional local
+  PDF-to-Markdown conversion path.
+- [Crossref](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
+  for DOI-based bibliographic metadata.
+- [uv](https://docs.astral.sh/uv/) for reproducible Python packaging and
+  development workflows.
+
+These projects did not review or endorse PaperMason. PaperMason remains an
+independent, local-first tool; users are responsible for complying with the
+licenses and access conditions of their source materials and chosen converters.
+
 ## Community and responsible disclosure
 
 Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
