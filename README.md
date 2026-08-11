@@ -15,8 +15,8 @@ confusing a filename, title, or catalog field for a supported claim.
 
 The core is a reusable Codex Skill packaged as a Codex plugin. Its optional
 Python CLI makes catalog creation, ingestion, and verification deterministic;
-the Skill itself works read-only with an existing `library.jsonl` and does not
-need Python, MinerU, a cloud service, an API key, or a GPU.
+the Skill reads an existing `library.jsonl` directly for catalog-first
+retrieval.
 
 ## Use it in Codex
 
@@ -42,23 +42,22 @@ evidence.
 If your Codex environment supports GitHub marketplaces, run:
 
 ```bash
-codex plugin marketplace add QKB-HEU/PaperMeld --ref main
+codex plugin marketplace add QinKB/PaperMeld --ref main
 codex plugin add papermeld@papermeld
 ```
 
-Then start a new Codex task and invoke `$papermeld`. The plugin includes the
-Skill only, so this installation has no Python, converter, or API-key
-requirement.
+Then start a new Codex task and invoke `$papermeld`. The plugin packages the
+Skill for catalog-first retrieval.
 
 You can also ask Codex directly:
 
-> Install the Codex plugin from https://github.com/QKB-HEU/PaperMeld
+> Install the Codex plugin from https://github.com/QinKB/PaperMeld
 
 ### Fallback: install only the Skill
 
 If your Codex environment cannot install a community plugin yet, ask it to:
 
-> Install the Codex Skill from GitHub repo `QKB-HEU/PaperMeld`, path
+> Install the Codex Skill from GitHub repo `QinKB/PaperMeld`, path
 > `plugins/papermeld/skills/papermeld`.
 
 When working from a clone, Codex also discovers the repository-scoped Skill at
@@ -74,14 +73,14 @@ The CLI needs Python 3.11+ and [uv](https://docs.astral.sh/uv/). If
 then run:
 
 ```bash
-uv tool install "git+https://github.com/QKB-HEU/PaperMeld.git"
+uv tool install "git+https://github.com/QinKB/PaperMeld.git"
 papermeld --help
 ```
 
 For a source checkout:
 
 ```bash
-git clone https://github.com/QKB-HEU/PaperMeld.git
+git clone https://github.com/QinKB/PaperMeld.git
 cd PaperMeld
 uv tool install .
 papermeld --help
@@ -89,6 +88,24 @@ papermeld --help
 
 Use the CLI independently or let Codex call it through `$papermeld` when it
 is available. MinerU is used when PaperMeld converts new PDFs.
+
+### Optional: install MinerU for PDF conversion
+
+MinerU powers PDF conversion through `ingest`. Install it in its own
+environment so its larger ML dependencies remain separate from PaperMeld:
+
+```bash
+uv venv ~/.venvs/mineru
+source ~/.venvs/mineru/bin/activate
+uv pip install -U "mineru[all]"
+mineru --version
+```
+
+`mineru[all]` is MinerU's general-purpose official installation. The first
+parse can download models and take time. While that environment is active,
+PaperMeld finds `mineru` on `PATH`; or pass its location explicitly with
+`--mineru "$(command -v mineru)"`. See the [MinerU Quick Start](https://opendatalab.github.io/MinerU/quick_start/)
+for platform-specific acceleration and model-source options.
 
 ## What problem it solves
 
@@ -107,9 +124,8 @@ the chosen Markdown or PDF before it makes a factual claim.
 ## Features
 
 - Local-first: PDF text and conversion artifacts stay on your computer.
-- Converter-optional: searching, verifying, and cataloging existing Markdown
-  require only Python's standard library. MinerU is an optional PDF converter,
-  not a PaperMeld dependency.
+- Converter-optional: cataloging and verification use Python's standard
+  library; MinerU adds PDF-to-Markdown conversion.
 - Safe ingestion: checks exact PDF hashes, DOI, and arXiv identifiers before a
   conversion; external PDFs are copied by default rather than moved.
 - Existing-library bootstrap: indexes your current Markdown and optionally

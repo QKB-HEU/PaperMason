@@ -12,8 +12,8 @@ Markdown、PDF 或图片作为证据阅读。它避免了一种常见失误：�
 大量文件，把文件名、标题或目录字段误作有文献支持的结论。
 
 核心是一个可复用的 Codex Skill，并被打包为 Codex 插件。可选的 Python CLI
-使目录创建、入库和校验具有确定性；Skill 本身可只读使用已有的
-`library.jsonl`，不需要 Python、MinerU、云服务、API Key 或 GPU。
+使目录创建、入库和校验具有确定性；Skill 可直接读取已有的 `library.jsonl`，
+进行目录优先的检索。
 
 ## 在 Codex 中使用
 
@@ -38,22 +38,22 @@ PaperMeld 会将这一任务转化为一条以证据为中心的流程：
 如果当前 Codex 环境支持 GitHub marketplace，请运行：
 
 ```bash
-codex plugin marketplace add QKB-HEU/PaperMeld --ref main
+codex plugin marketplace add QinKB/PaperMeld --ref main
 codex plugin add papermeld@papermeld
 ```
 
-随后新建一个 Codex task，并调用 `$papermeld`。该插件只包含 Skill，因此安装
-本身不需要 Python、转换器或 API Key。
+随后新建一个 Codex task，并调用 `$papermeld`。该插件将 Skill 打包为目录优先的
+检索工作流。
 
 也可以直接对 Codex 说：
 
-> Install the Codex plugin from https://github.com/QKB-HEU/PaperMeld
+> Install the Codex plugin from https://github.com/QinKB/PaperMeld
 
 ### 备用方式：只安装 Skill
 
 如果当前 Codex 环境尚不能安装社区插件，可以对它说：
 
-> Install the Codex Skill from GitHub repo `QKB-HEU/PaperMeld`, path
+> Install the Codex Skill from GitHub repo `QinKB/PaperMeld`, path
 > `plugins/papermeld/skills/papermeld`.
 
 从源码克隆目录中工作时，Codex 也会自动发现仓库级的
@@ -67,14 +67,14 @@ CLI 需要 Python 3.11+ 与 [uv](https://docs.astral.sh/uv/)。如果
 安装 uv，然后运行：
 
 ```bash
-uv tool install "git+https://github.com/QKB-HEU/PaperMeld.git"
+uv tool install "git+https://github.com/QinKB/PaperMeld.git"
 papermeld --help
 ```
 
 从源码检出安装：
 
 ```bash
-git clone https://github.com/QKB-HEU/PaperMeld.git
+git clone https://github.com/QinKB/PaperMeld.git
 cd PaperMeld
 uv tool install .
 papermeld --help
@@ -82,6 +82,23 @@ papermeld --help
 
 CLI 可以独立使用，也可在可用时由 Codex 通过 `$papermeld` 调用。PaperMeld
 转换新的 PDF 时使用 MinerU。
+
+### 可选：安装用于 PDF 转换的 MinerU
+
+MinerU 通过 `ingest` 完成 PDF 转换。建议单独安装，避免其较大的机器学习依赖进入
+PaperMeld 环境：
+
+```bash
+uv venv ~/.venvs/mineru
+source ~/.venvs/mineru/bin/activate
+uv pip install -U "mineru[all]"
+mineru --version
+```
+
+`mineru[all]` 是 MinerU 面向一般用户的官方安装方式。首次解析可能下载模型，耗时也
+会更长。激活该环境后，PaperMeld 会通过 `PATH` 找到 `mineru`；也可以显式传入
+`--mineru "$(command -v mineru)"`。不同平台的加速与模型源配置见
+[MinerU Quick Start](https://opendatalab.github.io/MinerU/quick_start/)。
 
 ## 它解决的问题
 
@@ -99,8 +116,8 @@ Markdown 或 PDF。
 ## 功能
 
 - 本地优先：PDF 文本和转换产物保留在你的计算机上。
-- 转换器可选：检索、校验和为现有 Markdown 建目录只需要 Python 标准库。MinerU
-  是可选的 PDF 转换器，并非 PaperMeld 的依赖。
+- 转换器可选：目录创建与校验使用 Python 标准库；MinerU 提供 PDF 转 Markdown
+  转换。
 - 安全导入：在转换前检查完全一致的 PDF 哈希、DOI 和 arXiv 标识。外部 PDF 默认
   被复制而不是移动。
 - 现有文献库引导：为现有 Markdown 建立索引，并可关联 PDF；不会重命名、移动或
