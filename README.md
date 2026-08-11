@@ -86,8 +86,7 @@ papermason --help
 ```
 
 Use the CLI independently or let Codex call it through `$papermason` when it
-is available. Do not install MinerU unless you want PaperMason to convert new
-PDFs.
+is available. MinerU is used when PaperMason converts new PDFs.
 
 ## What problem it solves
 
@@ -143,7 +142,7 @@ No source PDF, Markdown, or image is uploaded anywhere.
 
 ### I already have Markdown or a converter output folder
 
-You do not need MinerU. First preview the catalog that would be built:
+First preview the catalog that would be built:
 
 ```bash
 papermason --library ~/Research/Papers bootstrap \
