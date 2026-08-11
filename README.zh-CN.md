@@ -2,6 +2,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+![PaperMason 工作流：论文库、目录与选中的证据论文](docs/media/papermason-workflow.png)
+
 > **一个用于构建、检索和维护本地、目录优先文献库的 Codex Skill 与插件。**
 
 PaperMason 为 Codex 提供了一套使用个人文献库的明确流程：调用
@@ -27,9 +29,7 @@ PaperMason 会将这一任务转化为一条以证据为中心的流程：
 研究问题 -> 检索目录 -> 少量候选文献 -> 查阅原始材料 -> 有证据支持的回答
 ```
 
-目录只负责将智能体引导到原始材料，不能代替原始材料作为证据。需要撰写某个
-领域或期刊的内容时，可在检索后配合专门的写作 Skill；例如，IEEE TITS 的引言
-可使用 `tits-academic-writing`。
+目录只负责将智能体引导到原始材料，不能代替原始材料作为证据。
 
 ## 在 Codex 中安装
 

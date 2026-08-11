@@ -2,6 +2,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+![PaperMason workflow: paper library, catalog, and selected evidence](docs/media/papermason-workflow.png)
+
 > **A Codex Skill and plugin for building, searching, and maintaining a local,
 > catalog-first paper library.**
 
@@ -31,9 +33,7 @@ research question -> catalog search -> small candidate set -> source inspection 
 ```
 
 The catalog routes the agent to sources; it never replaces the sources as
-evidence. For venue-specific prose after retrieval, pair it with a separate
-writing Skill—for example, `tits-academic-writing` for an IEEE TITS
-Introduction.
+evidence.
 
 ## Install in Codex
 
