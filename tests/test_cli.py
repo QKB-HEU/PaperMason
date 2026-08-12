@@ -148,6 +148,86 @@ class PaperMeldEndToEndTest(unittest.TestCase):
             self.assertEqual(record["venue"], "RA-L")
             self.assertEqual(record["paper_id"], "2025-RA-L-ExampleNet")
 
+    def test_link_code_matches_readme_and_verifies_repository_state(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            library.mkdir()
+            record = {
+                "schema_version": 1,
+                "paper_id": "2025-CVPR-ExampleNet",
+                "title": "ExampleNet: A Practical Model for Motion Prediction",
+                "model_names": ["ExampleNet"],
+            }
+            (library / "library.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+            code_root = temp / "code"
+            repository = code_root / "ExampleNet"
+            repository.mkdir(parents=True)
+            (repository / "README.md").write_text(
+                "# ExampleNet: A Practical Model for Motion Prediction\n\n"
+                "Official implementation.\n",
+                encoding="utf-8",
+            )
+            for command in (
+                ["git", "init"],
+                ["git", "config", "user.email", "test@example.com"],
+                ["git", "config", "user.name", "PaperMeld Test"],
+                ["git", "add", "README.md"],
+                ["git", "commit", "-m", "initial"],
+                ["git", "remote", "add", "origin", "https://github.com/example/ExampleNet.git"],
+            ):
+                result = subprocess.run(command, cwd=repository, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "link-code", "--code-root", str(code_root),
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            linked = json.loads((library / "library.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(len(linked["code"]), 1)
+            code = linked["code"][0]
+            self.assertEqual(code["local_path"], str(repository.resolve()))
+            self.assertEqual(code["repository_url"], "https://github.com/example/ExampleNet.git")
+            self.assertIn("title", code["match_evidence"])
+            self.assertEqual(len(code["commit"]), 40)
+            verify = subprocess.run(
+                [shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library), "verify"],
+                capture_output=True,
+                text=True,
+                env=os.environ | {"PYTHONPATH": str(PROJECT / "src")},
+            )
+            self.assertEqual(verify.returncode, 0, verify.stderr)
+
+    def test_link_code_ignores_a_model_mentioned_by_another_repository(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            library.mkdir()
+            record = {
+                "schema_version": 1,
+                "paper_id": "2025-CVPR-ExampleNet",
+                "title": "ExampleNet: A Practical Model for Motion Prediction",
+                "model_names": ["ExampleNet"],
+            }
+            (library / "library.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+            repository = temp / "code" / "Framework"
+            repository.mkdir(parents=True)
+            (repository / "README.md").write_text(
+                "# Framework\n\nThis project uses ExampleNet as a baseline.\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(["git", "init"], cwd=repository, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "link-code", "--code-root", str(repository.parent),
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            linked = json.loads((library / "library.jsonl").read_text(encoding="utf-8"))
+            self.assertNotIn("code", linked)
+
 
 if __name__ == "__main__":
     unittest.main()

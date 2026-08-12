@@ -129,6 +129,8 @@ the chosen Markdown or PDF before it makes a factual claim.
   conversion; external PDFs are copied by default rather than moved.
 - Existing-library bootstrap: indexes your current Markdown and optionally
   links PDFs without renaming, moving, or rewriting either.
+- Implementation links: connects existing local Git repositories to their
+  papers and records the repository state for later code work.
 - Agent-friendly retrieval: stable, concise `search` output lets an agent open
   only the relevant source files.
 - Portable layout: new libraries have neutral directory names; the older
@@ -232,6 +234,22 @@ and inspect only the sources needed to support the task. PaperMeld preserves
 library data by default; use the ingestion workflow only when you intend to
 change the library.
 
+## Link local code to papers
+
+If paper implementations already live in a local directory, preview the links
+that PaperMeld finds from README headings, paper titles, and model names:
+
+```bash
+papermeld --library ~/Research/Papers link-code \
+  --code-root ~/Research/Code \
+  --dry-run
+```
+
+Apply the same command without `--dry-run` to add a `code` list to matching
+paper records. Each link stores its local path, origin URL, branch, checked-out
+commit, README path, and matching evidence. Run `verify` after a code update to
+detect a missing repository, changed origin, or changed checkout.
+
 ## Commands
 
 | Command | Purpose | Needs a converter? |
@@ -239,7 +257,8 @@ change the library.
 | `init` | Create an empty library layout and catalog | No |
 | `bootstrap` | Index existing Markdown/PDF folders without changing them | No |
 | `search QUERY` | Route a research question to candidate records | No |
-| `verify` | Check catalog paths and local image links | No |
+| `link-code` | Link existing local Git repositories to paper records | No |
+| `verify` | Check catalog paths, local image links, and code links | No |
 | `ingest PDF` | Convert one PDF, organize assets, and append a record | Yes |
 
 Run `papermeld <command> --help` for every option. `ingest --dry-run` is the
@@ -259,7 +278,13 @@ recommended first run for any new converter or PDF collection.
   "status": "published",
   "source_pdf": "papers/2025-CVPR-Example.pdf",
   "markdown": "markdown/2025-CVPR-Example.md",
-  "artifact_dir": "assets/2025-CVPR-Example"
+  "artifact_dir": "assets/2025-CVPR-Example",
+  "code": [{
+    "relationship": "implementation",
+    "local_path": "/home/me/Research/Code/Example",
+    "repository_url": "https://github.com/example/Example.git",
+    "commit": "<checked-out commit>"
+  }]
 }
 ```
 

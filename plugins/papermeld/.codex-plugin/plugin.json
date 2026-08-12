@@ -1,6 +1,6 @@
 {
   "name": "papermeld",
-  "version": "0.1.0+codex.20260811025939",
+  "version": "0.1.0+codex.20260812113318",
   "description": "A Codex Skill and plugin for building, searching, and auditing local catalog-first paper libraries.",
   "author": {
     "name": "PaperMeld contributors"

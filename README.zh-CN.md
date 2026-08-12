@@ -121,6 +121,7 @@ Markdown 或 PDF。
   被复制而不是移动。
 - 现有文献库引导：为现有 Markdown 建立索引，并可关联 PDF；不会重命名、移动或
   重写已有文件。
+- 代码关联：将现有本地 Git 仓库与对应论文连接，并记录后续阅读代码所需的仓库状态。
 - 适合智能体检索：稳定、精简的 `search` 输出让智能体只打开相关的原始文件。
 - 可移植布局：新的文献库使用中性的目录名；旧的 `INBOX/PDF/Markdown` 布局也会
   被识别以保持兼容。
@@ -216,6 +217,21 @@ papermeld --library ~/Research/Papers verify
 同一检索原则同样适用于脚本和其他 AI 智能体：先搜索，再只检查支撑任务所需的
 原始材料。PaperMeld 默认保留文献库数据；只有在打算修改文献库时才使用导入流程。
 
+## 将本地代码关联到论文
+
+如果论文实现已在本地目录中，先预览 PaperMeld 根据 README 标题、论文题名和模型名
+发现的关联：
+
+```bash
+papermeld --library ~/Research/Papers link-code \
+  --code-root ~/Research/Code \
+  --dry-run
+```
+
+确认后去掉 `--dry-run`，匹配的论文记录会增加 `code` 列表。每项关联保存本地路径、
+远程地址、分支、当前提交、README 路径和匹配依据。代码更新后运行 `verify`，即可发现
+仓库缺失、远程地址或当前提交的变化。
+
 ## 命令
 
 | 命令 | 用途 | 需要转换器？ |
@@ -223,7 +239,8 @@ papermeld --library ~/Research/Papers verify
 | `init` | 创建空的文献库布局和目录 | 否 |
 | `bootstrap` | 为已有 Markdown/PDF 目录建索引，不修改它们 | 否 |
 | `search QUERY` | 将研究问题路由到候选记录 | 否 |
-| `verify` | 检查目录路径和本地图片链接 | 否 |
+| `link-code` | 将已有本地 Git 仓库关联到论文记录 | 否 |
+| `verify` | 检查目录路径、本地图片链接和代码关联 | 否 |
 | `ingest PDF` | 转换一篇 PDF、整理资源并追加记录 | 是 |
 
 每个选项请运行 `papermeld <command> --help` 查看。对新的转换器或 PDF 集合，
@@ -243,7 +260,13 @@ papermeld --library ~/Research/Papers verify
   "status": "published",
   "source_pdf": "papers/2025-CVPR-Example.pdf",
   "markdown": "markdown/2025-CVPR-Example.md",
-  "artifact_dir": "assets/2025-CVPR-Example"
+  "artifact_dir": "assets/2025-CVPR-Example",
+  "code": [{
+    "relationship": "implementation",
+    "local_path": "/home/me/Research/Code/Example",
+    "repository_url": "https://github.com/example/Example.git",
+    "commit": "<checked-out commit>"
+  }]
 }
 ```
 

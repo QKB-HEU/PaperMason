@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -75,6 +76,14 @@ class Library:
         with self.catalog.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
+    def replace_records(self, records: list[dict]) -> None:
+        self.catalog.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.catalog.with_name(self.catalog.name + ".tmp")
+        with temporary.open("w", encoding="utf-8") as stream:
+            for record in records:
+                stream.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        os.replace(temporary, self.catalog)
+
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -92,6 +101,11 @@ def catalog_path(library: Library, path: Path | None) -> str | None:
         return str(path.resolve().relative_to(library.root))
     except ValueError:
         return str(path.resolve())
+
+
+def resolve_catalog_path(library: Library, value: str) -> Path:
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else library.root / path
 
 
 def slug(value: str, fallback: str) -> str:
@@ -535,27 +549,177 @@ def search(args: argparse.Namespace) -> int:
     return 0
 
 
+def git_output(repository: Path, *arguments: str) -> str | None:
+    result = subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def git_repositories(root: Path) -> list[Path]:
+    repositories = []
+    for current, directories, files in os.walk(root):
+        if ".git" in directories or ".git" in files:
+            repositories.append(Path(current).resolve())
+            directories[:] = []
+    return sorted(repositories)
+
+
+def repository_readme(repository: Path) -> tuple[Path | None, str]:
+    candidates = sorted(
+        path for path in repository.iterdir()
+        if path.is_file() and path.name.lower().startswith("readme")
+    )
+    if not candidates:
+        return None, ""
+    readme = candidates[0]
+    return readme, readme.read_text(encoding="utf-8", errors="replace")[:1_000_000]
+
+
+def match_text(value: str) -> str:
+    value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def readme_heading_text(text: str) -> str:
+    headings = []
+    for line in text.splitlines()[:80]:
+        if re.match(r"\s*#{1,3}\s+", line) or re.search(r"<h[1-3][^>]*>", line, re.IGNORECASE):
+            headings.append(re.sub(r"<[^>]+>", " ", line))
+    return " ".join(headings)
+
+
+def repository_metadata(repository: Path) -> dict:
+    readme, readme_text = repository_readme(repository)
+    return {
+        "local_path": str(repository),
+        "repository_url": git_output(repository, "remote", "get-url", "origin"),
+        "branch": git_output(repository, "branch", "--show-current"),
+        "commit": git_output(repository, "rev-parse", "HEAD"),
+        "readme": str(readme.relative_to(repository)) if readme is not None else None,
+        "_readme_text": readme_text,
+    }
+
+
+def code_match_evidence(record: dict, repository: Path, readme_text: str) -> list[str]:
+    readme = match_text(readme_text)
+    repository_name = match_text(repository.name)
+    repository_variants = {repository_name, repository_name.rstrip("0123456789")}
+    headings = match_text(readme_heading_text(readme_text))
+    evidence = []
+    title = match_text(str(record.get("title") or ""))
+    if len(title) >= 16 and title in headings:
+        evidence.append("title")
+    for model in record.get("model_names") or []:
+        normalized = match_text(str(model))
+        if len(normalized) < 4:
+            continue
+        if normalized in repository_variants:
+            evidence.append("repository_name")
+        if normalized in readme and ("title" in evidence or "repository_name" in evidence):
+            evidence.append("model_name")
+    return list(dict.fromkeys(evidence))
+
+
+def link_code(args: argparse.Namespace) -> int:
+    library = Library(args.library)
+    code_root = args.code_root.expanduser().resolve()
+    if not code_root.is_dir():
+        raise PaperMeldError(f"Code root does not exist: {code_root}")
+    records = library.records()
+    if not records:
+        raise PaperMeldError("library.jsonl is empty; catalog papers before linking code.")
+    repositories = git_repositories(code_root)
+    links = []
+    for repository in repositories:
+        metadata = repository_metadata(repository)
+        for record in records:
+            evidence = code_match_evidence(record, repository, metadata["_readme_text"])
+            if not evidence:
+                continue
+            link = {key: value for key, value in metadata.items() if key != "_readme_text"}
+            link.update({
+                "relationship": "implementation",
+                "match_evidence": evidence,
+                "verified_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            })
+            links.append((record["paper_id"], link))
+    print(f"Code-link plan: {len(repositories)} repositories scanned; {len(links)} paper-code link(s) found.")
+    for paper_id, link in links:
+        print(f"{paper_id}\t{link['local_path']}\t{','.join(link['match_evidence'])}")
+    if args.dry_run:
+        print("Dry run complete; catalog was not changed.")
+        return 0
+    by_paper = {paper_id: [] for paper_id, _ in links}
+    for paper_id, link in links:
+        by_paper[paper_id].append(link)
+    changed = 0
+    for record in records:
+        discovered = by_paper.get(record.get("paper_id"), [])
+        if not discovered:
+            continue
+        existing = record.get("code") or []
+        retained = [
+            link for link in existing
+            if not any(link.get("local_path") == candidate["local_path"] for candidate in discovered)
+        ]
+        record["code"] = retained + discovered
+        changed += 1
+    library.replace_records(records)
+    print(f"Linked {len(links)} repository relation(s) to {changed} paper record(s).")
+    return 0
+
+
 def verify(args: argparse.Namespace) -> int:
     library = Library(args.library)
     problems = []
     local_images = 0
-    for record in library.records():
+    code_links = 0
+    records = library.records()
+    for record in records:
+        paper_id = record.get("paper_id", "<missing paper_id>")
         for field in ("source_pdf", "markdown", "artifact_dir", "mineru_dir"):
             value = record.get(field)
-            if value and not (library.root / value).exists():
-                problems.append(f"{record['paper_id']}: missing {field}: {value}")
+            if value and not resolve_catalog_path(library, value).exists():
+                problems.append(f"{paper_id}: missing {field}: {value}")
         markdown_value = record.get("markdown")
-        if record.get("image_mode") == "local" and markdown_value and (library.root / markdown_value).is_file():
-            markdown = library.root / markdown_value
+        markdown_path = resolve_catalog_path(library, markdown_value) if markdown_value else None
+        if record.get("image_mode") == "local" and markdown_path and markdown_path.is_file():
+            markdown = markdown_path
             for destination in markdown_destinations(markdown.read_text(encoding="utf-8", errors="strict")):
                 if destination.startswith(("../", "./", "images/")):
                     local_images += 1
                     if not (markdown.parent / destination).resolve().is_file():
-                        problems.append(f"{record['paper_id']}: broken image link: {destination}")
+                        problems.append(f"{paper_id}: broken image link: {destination}")
+        code = record.get("code") or []
+        if not isinstance(code, list):
+            problems.append(f"{paper_id}: code must be a list")
+            continue
+        for link in code:
+            code_links += 1
+            local_path = link.get("local_path")
+            if not local_path:
+                problems.append(f"{paper_id}: code link is missing local_path")
+                continue
+            repository = resolve_catalog_path(library, local_path)
+            if not repository.is_dir() or not (repository / ".git").exists():
+                problems.append(f"{paper_id}: missing Git repository: {local_path}")
+                continue
+            expected_origin = link.get("repository_url")
+            actual_origin = git_output(repository, "remote", "get-url", "origin")
+            if expected_origin and actual_origin != expected_origin:
+                problems.append(f"{paper_id}: code origin changed: {local_path}")
+            expected_commit = link.get("commit")
+            actual_commit = git_output(repository, "rev-parse", "HEAD")
+            if expected_commit and actual_commit != expected_commit:
+                problems.append(f"{paper_id}: code checkout changed: {local_path}")
     if problems:
         print("\n".join(problems))
         return 1
-    print(f"Verified {len(library.records())} catalog record(s) and {local_images} local image link(s).")
+    print(f"Verified {len(records)} catalog record(s), {local_images} local image link(s), and {code_links} code link(s).")
     return 0
 
 
@@ -592,6 +756,10 @@ def build_parser() -> argparse.ArgumentParser:
     find = sub.add_parser("search", help="Search structured catalog metadata.")
     find.add_argument("query")
     find.set_defaults(handler=search)
+    code = sub.add_parser("link-code", help="Link local Git repositories to cataloged papers from README evidence.")
+    code.add_argument("--code-root", type=Path, required=True, help="Directory containing local Git repositories.")
+    code.add_argument("--dry-run", action="store_true", help="Print discovered links without changing library.jsonl.")
+    code.set_defaults(handler=link_code)
     check = sub.add_parser("verify", help="Verify catalog paths.")
     check.set_defaults(handler=verify)
     return parser

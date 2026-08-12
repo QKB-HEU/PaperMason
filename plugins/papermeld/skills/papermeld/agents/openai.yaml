@@ -1,4 +1,4 @@
 interface:
   display_name: "PaperMeld for Codex"
-  short_description: "Catalog-first local paper-library workflow for Codex"
-  default_prompt: "Use $papermeld to find a small evidence set in my local paper library."
+  short_description: "Catalog-first literature and code libraries for Codex"
+  default_prompt: "Use $papermeld to search my local literature library and inspect linked code when useful."

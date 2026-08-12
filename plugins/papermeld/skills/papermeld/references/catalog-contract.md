@@ -13,6 +13,20 @@ index, not a bibliography manager and not proof for a research claim.
 | `source_pdf`, `markdown`, `artifact_dir`, `image_root` | Relative paths inside the library when possible, otherwise an explicit absolute local path. |
 | `review_required`, `metadata_source` | Signals that a person or agent must check the metadata before relying on it. |
 | `tags`, `abstract_excerpt` | Optional routing hints only. |
+| `code` | Optional list of local implementation links for the paper. |
+
+## Code links
+
+Each `code` entry records one checked local Git repository:
+
+| Field | Meaning |
+| --- | --- |
+| `local_path` | Absolute or library-relative repository path. |
+| `repository_url`, `branch`, `commit` | Remote address and checked-out Git state at link time. |
+| `relationship` | Usually `implementation`; retain a more specific value when known. |
+| `match_evidence`, `readme`, `verified_at` | Why the repository was linked, README path, and check time. |
+
+Use `papermeld link-code --code-root <root> --dry-run` to preview README/title and repository-name matches. Re-run without `--dry-run` to update links. `verify` checks every linked repository's path, remote address, and checkout.
 
 ## Path rules
 

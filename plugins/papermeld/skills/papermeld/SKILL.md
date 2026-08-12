@@ -1,6 +1,6 @@
 ---
 name: papermeld
-description: Build, maintain, retrieve, and audit a local catalog-first literature library with PaperMeld. Use when Codex needs to organize PDFs or converted Markdown, bootstrap an existing paper folder, diagnose broken Markdown image links, find a small evidence set for a research question, or help an AI use library.jsonl without scanning every paper. Works across research fields and can operate read-only without PaperMeld, MinerU, cloud services, or API keys.
+description: Build, maintain, retrieve, and audit a local catalog-first literature and implementation library with PaperMeld. Use when Codex needs to organize PDFs or converted Markdown, bootstrap an existing paper folder, link local Git repositories to papers, diagnose broken Markdown image links, conduct a literature review, or help an AI use library.jsonl without scanning every paper. Works across research fields.
 ---
 
 # PaperMeld — Codex Skill
@@ -12,7 +12,7 @@ open; never use a title, tag, abstract excerpt, or filename as factual proof.
 ## Start with discovery
 
 1. Ask for or locate the library root. Look for `library.jsonl` first.
-2. If the `papermeld` command is available, run `papermeld --library <root> search <query>` or `verify` as appropriate. If it is not installed, inspect `library.jsonl` directly; do not block a read-only research task on an installation.
+2. If the `papermeld` command is available, run `papermeld --library <root> search <query>` or `verify` as appropriate. Otherwise inspect `library.jsonl` directly for a read-only task.
 3. Read [references/catalog-contract.md](references/catalog-contract.md) before editing a catalog or deciding whether a path is a valid local record.
 4. Report the observed layout, catalog record count, unresolved records, and any assumptions before proposing a structural change.
 
@@ -22,9 +22,29 @@ open; never use a title, tag, abstract excerpt, or filename as factual proof.
 
 1. Extract 2–4 precise concepts from the task: problem, setting, method family, limitation, or venue.
 2. Search one focused query at a time. Rank records by title, tags, abstract excerpt, status, and source paths.
-3. Select the smallest viable evidence set—normally 3–8 papers, not the entire library.
+3. For a specific claim, select a small, deep evidence set—normally 3–8 papers.
 4. Open the relevant section, page, or figure in each selected source. Record a source card with its path, version, precise claim, and location.
 5. State evidence gaps explicitly. Hand the source cards to a domain writing skill when one applies; PaperMeld provides evidence routing, not venue-specific rhetoric.
+
+### Conduct a literature or field review
+
+1. Search the complete local catalog by problem, method, data, benchmark, and time range. Then search the web for material absent from the local library.
+2. Build a method map: research branches, representative papers, datasets, codebases, evaluation conventions, and open questions.
+3. Read enough primary sources to cover each branch. Do not impose a fixed paper count; stop when new sources no longer change the map.
+4. Keep the broad map separate from the final evidence set. Use the latter for any precise factual or writing claim.
+
+### Link and use local implementation repositories
+
+For an implementation task, inspect a paper's `code` entries before searching online. Open the linked README and relevant source files, then use the recorded repository state to reproduce or explain behavior.
+
+To index repositories already on disk, preview and then apply:
+
+```bash
+papermeld --library <library-root> link-code --code-root <repository-root> --dry-run
+papermeld --library <library-root> link-code --code-root <repository-root>
+```
+
+When no local implementation is available, locate the confirmed project repository, clone it into the user's selected code root, and run `link-code` again. Run `verify` after linking or updating a repository.
 
 ### Bootstrap an existing collection
 
@@ -41,7 +61,7 @@ Check duplicate `paper_id` values and links before rerunning without `--dry-run`
 
 ### Ingest one new PDF
 
-Use `ingest` only after a converter has been separately installed and tested. The core catalog workflow does not require MinerU. Preview metadata and duplicate detection first:
+Use `ingest` after a converter has been installed and tested. Preview metadata and duplicate detection first:
 
 ```bash
 papermeld --library <library-root> ingest <input.pdf> --label <short-label> --dry-run
@@ -61,14 +81,13 @@ Run `verify` before proposing a repair. Classify failures as missing source mate
 - Do not claim a preprint and formal publication are duplicates solely because their titles resemble each other. Verify DOI, arXiv ID, authors, or the actual document.
 - Do not let a catalog search replace source inspection or citation checking.
 - Keep personal library data out of a public repository. Share an empty example library or synthetic fixtures instead.
-- Do not require a cloud service, embedding database, LLM API, GPU, or PDF converter for catalog search and evidence routing.
 - Separate general library behavior from domain writing behavior. Keep TITS, medicine, law, or other specialised advice in an extension Skill.
 
 ## Deliverables
 
 - Retrieval: a short candidate table, selected source cards, and stated gaps.
 - Bootstrap/ingest: a dry-run summary, intended changes, user-confirmed metadata, and post-run verification result.
-- Audit: the exact broken records, failure category, safe repair options, and what was not changed.
+- Audit: the exact broken records, failure category, safe repair options, linked-code state, and what was not changed.
 - Open-source setup: minimal prerequisites, a fresh-install path, a fresh-library path, and a test command proven in a clean directory.
 
 ## Resources
