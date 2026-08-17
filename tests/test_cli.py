@@ -95,7 +95,7 @@ class PaperMeldEndToEndTest(unittest.TestCase):
                 "base = output / source.stem / 'hybrid_auto'\n"
                 "(base / 'images').mkdir(parents=True)\n"
                 "(base / 'images' / 'figure.png').write_bytes(b'png')\n"
-                "(base / (source.stem + '.md')).write_text('# Example\\n\\n![](images/figure.png)\\n', encoding='utf-8')\n",
+                "(base / (source.stem + '.md')).write_text('# Example\\n\\n## ABSTRACT\\nAccurate trajectory prediction supports safe autonomous driving.\\n\\n## Index Terms—trajectory prediction; autonomous driving\\n\\n## I. INTRODUCTION\\n\\n![](images/figure.png)\\n', encoding='utf-8')\n",
                 encoding="utf-8",
             )
             fake.chmod(0o755)
@@ -112,6 +112,98 @@ class PaperMeldEndToEndTest(unittest.TestCase):
             self.assertIn("../MINERU_OUTPUT/2025-CVPR-ExampleNet/hybrid_auto/images/figure.png", markdown.read_text())
             record = json.loads((library / "library.jsonl").read_text())
             self.assertEqual(record["paper_id"], "2025-CVPR-ExampleNet")
+            self.assertEqual(record["abstract_excerpt"], "Accurate trajectory prediction supports safe autonomous driving.")
+            self.assertEqual(record["tags"], ["trajectory-prediction", "autonomous-driving"])
+
+    def test_ingest_rejects_an_empty_gpu_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            source = temp / "paper.pdf"
+            source.write_bytes(b"%PDF-1.4\n% test fixture\n")
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "ingest", str(source), "--label", "ExampleNet", "--gpu", "",
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("--gpu must be a non-empty CUDA device selection", result.stderr)
+            self.assertEqual((library / "library.jsonl").read_text(encoding="utf-8"), "")
+
+    def test_ingest_infers_year_and_label_from_underscore_filename(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            source = temp / "2020_SPF2_Sequential_Pointcloud_Forecasting.pdf"
+            source.write_bytes(b"%PDF-1.4\n% test fixture\n")
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "ingest", str(source), "--label", source.stem, "--arxiv", "2003.08376", "--dry-run",
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"paper_id": "2020-arXiv-SPF2-Sequential-Pointcloud-Forecasting"', result.stdout)
+            self.assertIn('"year": 2020', result.stdout)
+
+    def test_ingest_infers_year_from_arxiv_when_filename_has_no_year(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            source = temp / "paper.pdf"
+            source.write_bytes(b"%PDF-1.4\n% test fixture\n")
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "ingest", str(source), "--label", "SPF2", "--arxiv", "2003.08376", "--dry-run",
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"paper_id": "2020-arXiv-SPF2"', result.stdout)
+            self.assertIn('"year": 2020', result.stdout)
+
+    def test_ingest_infers_venue_and_model_label_from_filename(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            source = temp / "2026_CVPR_SHARP.pdf"
+            source.write_bytes(b"%PDF-1.4\n% test fixture\n")
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "ingest", str(source), "--label", source.stem, "--dry-run",
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"paper_id": "2026-CVPR-SHARP"', result.stdout)
+            self.assertIn('"venue": "CVPR"', result.stdout)
+            self.assertIn('"label": "SHARP"', result.stdout)
+
+    def test_ingest_enriches_venue_and_model_from_converted_markdown(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            temp = Path(temporary)
+            library = temp / "library"
+            source = temp / "paper.pdf"
+            source.write_bytes(b"%PDF-1.4\n% test fixture\n")
+            converter = temp / "converter.py"
+            converter.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, sys\n"
+                "out = pathlib.Path(sys.argv[2]) / 'converted'\n"
+                "out.mkdir(parents=True)\n"
+                "(out / 'paper.md').write_text('# SHARP: Short-Window Streaming for Accurate Prediction\\n\\nThis CVPR paper is the Open Access version.\\n', encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            converter.chmod(0o755)
+            command = [
+                shutil.which("python3") or "python", "-m", "papermeld.cli", "--library", str(library),
+                "ingest", str(source), "--year", "2026",
+                "--converter", f"{shutil.which('python3') or 'python'} {converter} {{pdf}} {{output}}",
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, env=os.environ | {"PYTHONPATH": str(PROJECT / "src")})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            record = json.loads((library / "library.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(record["paper_id"], "2026-CVPR-SHARP")
+            self.assertEqual(record["venue"], "CVPR")
+            self.assertEqual(record["label"], "SHARP")
+            self.assertEqual(record["title"], "SHARP: Short-Window Streaming for Accurate Prediction")
 
     def test_bootstrap_catalogs_existing_markdown_without_rewriting_it(self):
         with tempfile.TemporaryDirectory() as temporary:

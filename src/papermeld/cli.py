@@ -24,10 +24,10 @@ ARXIV_RE = re.compile(r"arXiv:\s*(\d{4}\.\d{4,5})(?:v\d+)?", re.IGNORECASE)
 IMAGE_RE = re.compile(r"(!\[[^\]]*\]\()([^)]+)(\))")
 HTML_IMAGE_RE = re.compile(r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])(.*?)(\2)", re.IGNORECASE)
 KNOWN_VENUES = tuple(sorted((
-    "Applied-Intelligence", "Information-Fusion", "ACM-MM", "RA-L", "CVPRW", "ECCVW",
+    "Applied-Intelligence", "Information-Fusion", "ACM-MM", "RA-L", "ICCVW", "CVPRW", "ECCVW",
     "AISTATS", "NeurIPS", "InfoFusion", "arXiv", "TPAMI", "TITS", "TIV", "CVPR",
     "ICCV", "ECCV", "ICRA", "ITSC", "IROS", "ICLR", "CoRL", "AAAI", "ESWA", "ACCV",
-    "ASE", "PRL", "ETSI", "IV",
+    "ASE", "PRL", "ETSI", "WACV", "IV",
 ), key=len, reverse=True))
 
 
@@ -177,6 +177,40 @@ def fallback_title(pdf: Path) -> str:
     return re.sub(r"\s+", " ", stem.replace("_", " ")).strip()
 
 
+def filename_year(pdf: Path) -> int | None:
+    match = re.search(r"(?<!\d)((?:19|20)\d{2})(?!\d)", pdf.stem)
+    return int(match.group(1)) if match else None
+
+
+def arxiv_year(arxiv_id: str | None) -> int | None:
+    match = re.fullmatch(r"(\d{2})\d{2}\.\d{4,5}", arxiv_id or "")
+    return 2000 + int(match.group(1)) if match else None
+
+
+def venue_from_names(*values: str) -> str | None:
+    workshop_aliases = (
+        (r"\bCVPR\s+(?:\d{4}\s+)?Workshop\b", "CVPRW"),
+        (r"\bICCV\s+(?:\d{4}\s+)?Workshop\b", "ICCVW"),
+        (r"\bECCV\s+(?:\d{4}\s+)?Workshop\b", "ECCVW"),
+    )
+    for pattern, venue in workshop_aliases:
+        if any(re.search(pattern, value, re.IGNORECASE) for value in values if value):
+            return venue
+    matches = {
+        venue
+        for venue in KNOWN_VENUES
+        if any(re.search(rf"(?<![A-Za-z0-9]){re.escape(venue)}(?![A-Za-z0-9])", value, re.IGNORECASE) for value in values if value)
+    }
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+def clean_label(value: str, venue: str | None = None) -> str:
+    value = re.sub(r"^(?:19|20)\d{2}[-_ ]+", "", value).strip()
+    if venue:
+        value = re.sub(rf"^{re.escape(venue)}[-_ ]+", "", value, flags=re.IGNORECASE).strip()
+    return value
+
+
 def infer_handle(title: str) -> tuple[str, bool]:
     official = re.match(r"\s*([A-Za-z][A-Za-z0-9+.-]{1,40})\s*:", title)
     if official:
@@ -192,12 +226,13 @@ def metadata(pdf: Path, args: argparse.Namespace) -> dict:
     arxiv_id = args.arxiv or next(iter(ARXIV_RE.findall(text)), None)
     remote = crossref(doi) if doi else None
     title = args.title or (remote or {}).get("title") or fallback_title(pdf)
-    year_match = re.search(r"\b(19|20)\d{2}\b", pdf.stem)
-    year = args.year or (remote or {}).get("year") or (int(year_match.group()) if year_match else dt.date.today().year)
-    inferred_venue = venue_alias((remote or {}).get("venue_raw", "")) if remote else ("arXiv" if arxiv_id else "Unresolved")
-    venue = args.venue or inferred_venue
+    year = args.year or (remote or {}).get("year") or filename_year(pdf) or arxiv_year(arxiv_id) or dt.date.today().year
+    filename_venue = venue_from_names(pdf.stem, args.label or "")
+    document_venue = venue_from_names(text[:6000])
+    inferred_venue = venue_alias((remote or {}).get("venue_raw", "")) if remote else None
+    venue = args.venue or inferred_venue or filename_venue or document_venue or ("arXiv" if arxiv_id else "Unresolved")
     handle, official_handle = infer_handle(title)
-    label = args.label or handle
+    label = clean_label(args.label or handle, venue)
     paper_id = args.paper_id or f"{year}-{venue}-{slug(label, 'Untitled')}"
     return {
         "paper_id": paper_id,
@@ -248,15 +283,23 @@ def markdown_destinations(text: str) -> list[str]:
 
 
 def abstract_excerpt(text: str) -> str:
-    match = re.search(r"(?is)\babstract\b\s*[-—:]?\s*(.{0,2400}?)(?=\n\s*(?:#*\s*)?(?:1\.?\s*)?introduction\b|\n\s*keywords?\b)", text)
-    if not match:
+    start = re.search(
+        r"(?im)^\s*(?:#{1,6}\s*)?(?:abstract|a\s+b\s+s\s+t\s+r\s+a\s+c\s+t)\b\s*[-—:.]?\s*",
+        text,
+    )
+    if not start:
         return ""
-    return re.sub(r"\s+", " ", match.group(1)).strip()[:1200]
+    end = re.search(
+        r"(?im)^\s*(?:#{1,6}\s*)?(?:(?:\d+|[IVXLCDM]+)\.?\s*)?introduction\b|^\s*(?:#{1,6}\s*)?(?:keywords?|index\s+terms?)\b",
+        text[start.end():],
+    )
+    excerpt = text[start.end():start.end() + end.start() if end else start.end() + 2400]
+    return re.sub(r"\s+", " ", excerpt).strip()[:1200]
 
 
 def infer_tags(text: str, title: str) -> list[str]:
     """Use author-supplied keywords instead of imposing a domain taxonomy."""
-    match = re.search(r"(?im)^\s*(?:keywords?|index\s+terms?)\s*[:—-]\s*(.+)$", text)
+    match = re.search(r"(?im)^\s*(?:#{1,6}\s*)?(?:keywords?|index\s+terms?)\s*[:—-]\s*(.+)$", text)
     if not match:
         return []
     tags = []
@@ -313,6 +356,26 @@ def markdown_title(text: str, fallback: str) -> str:
             if len(title) >= 12:
                 return title
     return fallback
+
+
+def enrich_metadata_from_markdown(meta: dict, source: Path, text: str, args: argparse.Namespace) -> dict:
+    enriched = dict(meta)
+    title = markdown_title(text, meta["title"])
+    handle, official_handle = infer_handle(title)
+    enriched["title"] = title
+    markdown_venue = venue_from_names(text[:8000])
+    if enriched["venue"] == "Unresolved" and markdown_venue:
+        enriched["venue"] = markdown_venue
+        enriched["metadata_source"] = "markdown-front-matter"
+        enriched["status"] = "published"
+    if official_handle and (not args.label or args.label == source.stem):
+        enriched["label"] = handle
+    else:
+        enriched["label"] = clean_label(enriched["label"], enriched["venue"])
+    if not args.paper_id:
+        enriched["paper_id"] = f"{enriched['year']}-{enriched['venue']}-{slug(enriched['label'], 'Untitled')}"
+    enriched["review_required"] = enriched["venue"] == "Unresolved" or (not official_handle and not args.label)
+    return enriched
 
 
 def source_pdf_for_bundle(library: Library, bundle: Path | None, paper_id: str, title: str, pdf_roots: list[Path]) -> Path | None:
@@ -458,6 +521,8 @@ def migrate_images(text: str, source_md: Path, bundle: Path, final_bundle: Path,
 
 
 def call_converter(source: Path, staging: Path, args: argparse.Namespace) -> None:
+    if args.gpu is not None and not args.gpu.strip():
+        raise PaperMeldError("--gpu must be a non-empty CUDA device selection; omit --gpu to let MinerU choose.")
     if args.converter:
         try:
             command = [part.format(pdf=str(source), output=str(staging)) for part in shlex.split(args.converter)]
@@ -476,7 +541,7 @@ def call_converter(source: Path, staging: Path, args: argparse.Namespace) -> Non
         command.extend(["--effort", args.effort])
     environment = os.environ.copy()
     if args.gpu is not None:
-        environment["CUDA_VISIBLE_DEVICES"] = args.gpu
+        environment["CUDA_VISIBLE_DEVICES"] = args.gpu.strip()
     print("Running MinerU:", " ".join(command))
     subprocess.run(command, check=True, env=environment)
 
@@ -497,12 +562,8 @@ def ingest(args: argparse.Namespace) -> int:
     digest = sha256(source)
     meta = metadata(source, args)
     check_duplicates(library.records(), digest, meta)
-    final_pdf = library.pdfs / f"{meta['paper_id']}.pdf"
-    final_md = library.markdown / f"{meta['paper_id']}.md"
-    final_bundle = library.assets / meta["paper_id"]
-    if any(path.exists() for path in (final_pdf, final_md, final_bundle)):
-        raise PaperMeldError(f"Destination already exists for {meta['paper_id']}; use --paper-id to resolve it.")
-    print(json.dumps({**meta, "source": str(source), "markdown": str(final_md)}, ensure_ascii=False, indent=2))
+    provisional_markdown = library.markdown / f"{meta['paper_id']}.md"
+    print(json.dumps({**meta, "source": str(source), "markdown": str(provisional_markdown)}, ensure_ascii=False, indent=2))
     if args.dry_run:
         print("Dry run complete; conversion was not started and no files changed.")
         return 0
@@ -510,7 +571,14 @@ def ingest(args: argparse.Namespace) -> int:
         staging = Path(temporary)
         call_converter(source, staging, args)
         bundle, generated = find_conversion_output(staging)
-        markdown = migrate_images(generated.read_text(encoding="utf-8"), generated, bundle, final_bundle, final_md)
+        generated_markdown = generated.read_text(encoding="utf-8")
+        meta = enrich_metadata_from_markdown(meta, source, generated_markdown, args)
+        final_pdf = library.pdfs / f"{meta['paper_id']}.pdf"
+        final_md = library.markdown / f"{meta['paper_id']}.md"
+        final_bundle = library.assets / meta["paper_id"]
+        if any(path.exists() for path in (final_pdf, final_md, final_bundle)):
+            raise PaperMeldError(f"Destination already exists for {meta['paper_id']}; use --paper-id to resolve it.")
+        markdown = migrate_images(generated_markdown, generated, bundle, final_bundle, final_md)
         temporary_markdown = library.markdown / f".{meta['paper_id']}.tmp"
         temporary_markdown.write_text(markdown, encoding="utf-8")
         try:
@@ -526,6 +594,9 @@ def ingest(args: argparse.Namespace) -> int:
     record = {
         "schema_version": 1,
         **meta,
+        "model_names": [meta["label"]],
+        "tags": infer_tags(markdown, meta["title"]),
+        "abstract_excerpt": abstract_excerpt(markdown),
         "sha256": digest,
         "source_pdf": catalog_path(library, final_pdf),
         "markdown": catalog_path(library, final_md),
